@@ -1,23 +1,69 @@
-/* jshint undef: true, node: true, esnext: true */
-/* global D4, D5, I2C1 */
-
-// Default I2C address
-var LIS3DH_DEFAULT_ADDRESS = 0x18;
-
+/* jshint undef: true, esnext: true */
+/* global D4, D5, I2C1, console, setTimeout */
 
 function LIS3DH (TheI2c, TheAddr) {
 
     this.i2c = TheI2c;
     this.addr = TheAddr || LIS3DH_DEFAULT_ADDRESS;
 
-    this.connect = function (TheI2c, TheAddr) {
-        return new LIS3DH (TheI2c, TheAddr);
+    // port of the Adafruit cpp functions.
+
+    // sets the value of one register.
+    this.writeRegister8 = function (register, value) {
+        this.i2c.writeTo(this.addr, [register, value] );
+    };
+
+    this.readRegister8 = function (register) {
+        return this.i2c.readFrom(this.addr, 1);
+    };
+
+    this.setDataRate = function (dataRate) {
+        var ctl1 = this.readRegister8(LIS3DH_REG.CTRL1);        
+        ctl1 &= ~(0xF0); // mask off bits
+        ctl1 |= (dataRate << 4);        
+        this.writeRegister8(LIS3DH_REG.CTRL1, ctl1);
     };
 
     // retrieve the accelerometer ID
     this.whoami = function () {
         this.i2c.writeTo(this.addr, LIS3DH_REG.WHOAMI);
-        return this.i2c.readFrom( this.addr, 1);
+        return this.i2c.readFrom(this.addr, 1)[0];
+    };
+
+    // Set the chip modes: 
+    this.begin = function () {
+        // enable all axes, normal mode
+        this.writeRegister8(LIS3DH_REG.CTRL1, 0x07); //0000 0111
+        // 400Hz rate
+        this.setDataRate(LIS3DH_DATARATE['400_HZ']);
+        // High res & BDU enabled
+        this.writeRegister8(LIS3DH_REG.CTRL4, 0x88); //1000 1000
+        // DRDY on INT1
+        this.writeRegister8(LIS3DH_REG.CTRL3, 0x00); //Was 0x10 - 0001 0000
+        // enable adcs
+        //this.writeRegister8(LIS3DH_REG.TEMPCFG, 0x80);
+    };
+
+    this.read = function () {
+
+        var readings;
+
+        this.i2c.writeTo(this.addr, LIS3DH_REG.OUT_X_L | 0x80 ); //1000 0000 | 
+        readings = this.i2c.readFrom(this.addr, 6);
+        console.log('0: ' + readings[0]);        
+        console.log('1: ' + readings[1]);        
+        console.log('2: ' + readings[2]);        
+        console.log('3: ' + readings[3]);        
+        console.log('4: ' + readings[4]);        
+        console.log('5: ' + readings[5]);       
+        
+        /*
+        var x = readings[0] | (readings[1] << 8);
+        var y = readings[2] | (readings[3] << 8);
+        var z = readings[4] | (readings[5] << 8);
+        */
+
+        //console.log('x=' + x + ', y='+ y + ', z=' + z);
     };
 
     var LIS3DH_DEFAULT_ADDRESS = 0x18;
@@ -64,10 +110,10 @@ function LIS3DH (TheI2c, TheAddr) {
 
     // Ranges
     var LIS3DH_RANGE = {
-        "16_G": 0b11,
-        "8_G": 0b10,
-        "4_G": 0b01,
-        "2_G": 0b00
+        '16_G': 0b11,
+        '8_G': 0b10,
+        '4_G': 0b01,
+        '2_G': 0b00
     };
 
     // Axis
@@ -79,27 +125,30 @@ function LIS3DH (TheI2c, TheAddr) {
 
     // Data rate
     var LIS3DH_DATARATE = {
-        "400_HZ": 0b0111,
-        "200_HZ": 0b0110,
-        "100_HZ": 0b0101,
-        "50_HZ": 0b0100,
-        "25_HZ": 0b0011,
-        "10_HZ": 0b0010,
-        "1_HZ": 0b0001,
-        "POWERDOWN": 0,
-        "LOWPOWER_1K6HZ": 0b1000,
-        "LOWPOWER_5KHZ": 0b1001
+        '400_HZ': 0b0111,
+        '200_HZ': 0b0110,
+        '100_HZ': 0b0101,
+        '50_HZ': 0b0100,
+        '25_HZ': 0b0011,
+        '10_HZ': 0b0010,
+        '1_HZ': 0b0001,
+        'POWERDOWN': 0,
+        'LOWPOWER_1K6HZ': 0b1000,
+        'LOWPOWER_5KHZ': 0b1001
     };
 
 }
 
 I2C1.setup({sda: D4, scl: D5});
-//console.log(I2C1);
 
-var accel = new lis3dh (I2C1, LIS3DH_DEFAULT_ADDRESS);
-//console.log(accel);
+var accel = new LIS3DH(I2C1, 0x18);
 
 // Accelerometer ID
-//console.log( accel.whoami() );
+console.log('Chip ID: ' + accel.whoami()); // Should display 51.
+
+accel.begin();
+
+accel.read();
+
 
 
