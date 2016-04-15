@@ -13,9 +13,9 @@ The datasheet for the LIS3DH is available [here](http://www.st.com/web/en/resour
 
 ### Set-up I2C
 
-SDA pin is on pin 4 and SCL is on pin 5. Edit the end of `index.js` if you are using another wiring.
+SDA pin is on pin 4 and SCL is on pin 5. Edit the end of `example.js` if you are using another wiring.
 
-The following code is executed at the end of index.js:
+The following code is executed in `example.js`:
 
 ```js
 I2C1.setup({sda: D4, scl: D5});
@@ -27,8 +27,8 @@ Then, we create the main object and set all the default configurations.
 The default I2C address is `0x18`.
 
 ```js
-var accel = new LIS3DH(I2C1, 0x18);
-accel.begin();
+var lis3dh = new LIS3DH(I2C1, 0x18);
+lis3dh.begin();
 ```
 
 
@@ -37,7 +37,7 @@ accel.begin();
 You can then trigger the read function by calling the `read()` function:
 
 ```js
-console.log(accel.read());
+console.log('Data: ' + lis3dh.read());
 ```
 
 You should see something like this:
